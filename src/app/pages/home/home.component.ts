@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Task } from './../../models/task.model'
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -15,7 +15,7 @@ export class HomeComponent {
     {
       id: Date.now(),
       title: 'Crear proyecto',
-      completed: false,
+      completed: true,
     },
     {
       id: Date.now(),
@@ -23,6 +23,20 @@ export class HomeComponent {
       completed: false,
     }
   ]);
+
+  filter = signal<'all' | 'pending' | 'completed'>('all');
+
+  tasksByFilter = computed(() => {
+    const filter = this.filter();
+    const tasks = this.tasks();
+    if ( filter === 'pending'){
+      return tasks.filter(task => !task.completed);
+    }
+    if ( filter === 'completed'){
+      return tasks.filter(task => task.completed);
+    }
+    return tasks;
+  })
 
   newTaskCtrl = new FormControl('', {
     nonNullable: true,
@@ -33,7 +47,7 @@ export class HomeComponent {
 
   changeHandler(){
     if (this.newTaskCtrl.valid && this.newTaskCtrl.value.trim()!==''){
-      const value = this.newTaskCtrl.value;
+      const value = this.newTaskCtrl.value.trim();
       this.addTask(value);
       this.newTaskCtrl.setValue('')
     } 
@@ -64,5 +78,42 @@ export class HomeComponent {
         return task;
       })
     })
+  }
+
+  updateTaskEditingMode(index: number){
+    this.tasks.update(prevState => {
+      return prevState.map((task, position) => {
+        if (position == index){
+          return{
+            ...task,
+            editing: true
+          }
+        }
+        return{
+          ...task,
+          editing:false
+        };
+      })
+    })
+  }
+
+  updateTaskText(index: number, event: Event ){
+    const input= event.target as HTMLInputElement;
+    this.tasks.update(prevState => {
+      return prevState.map((task, position) => {
+        if (position == index){
+          return{
+            ...task,
+            title: input.value,
+            editing: false            
+          }
+        }
+        return task;
+      })
+    })
+  }
+
+  changeFilter(filter:'all' | 'pending' | 'completed'){
+    this.filter.set(filter)
   }
 }
